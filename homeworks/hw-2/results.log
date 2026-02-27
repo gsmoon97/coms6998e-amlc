@@ -1,0 +1,39 @@
+(amlc-hw2) moongs@moon-macbook-air-3835 hw-2 % python gpu_provisioner.py --project amlc-485822
+/Users/moongs/miniconda3/envs/amlc-hw2/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+  warnings.warn(message, FutureWarning)
+/Users/moongs/miniconda3/envs/amlc-hw2/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.cloud.compute_v1 once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.cloud.compute_v1 past that date.
+  warnings.warn(message, FutureWarning)
+Method 1 completed in 2.83s
+Active GPU Allocation Attempts: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [17:54<00:00, 53.71s/it]
+
+=== Efficiency Comparison ===
+Passive scan time: 2.83s (2 API calls total)
+Active attempt time: 1074.21s
+Total API calls: 28
+Active attempts: 20
+Successful allocations: 6
+VMs kept: 0
+
+
+| Zone                      | GPU             | GPU available (Yes/No)   | GPU allocated successfully (Yes/No)   | Reason for failure           |   Time taken for each check |
+|:--------------------------|:----------------|:-------------------------|:--------------------------------------|:-----------------------------|----------------------------:|
+| northamerica-northeast1-c | nvidia-tesla-t4 | Yes                      | No                                    | No GPUs available (Stockout) |                       15.24 |
+| us-central1-a             | nvidia-tesla-t4 | Yes                      | No                                    | No GPUs available (Stockout) |                       20.37 |
+| us-central1-a             | nvidia-l4       | Yes                      | Yes                                   | N/A                          |                       16.73 |
+| northamerica-northeast1-b | nvidia-l4       | Yes                      | No                                    | Quota exceeded               |                       19.59 |
+| asia-south1-a             | nvidia-tesla-t4 | Yes                      | No                                    | No GPUs available (Stockout) |                       30.96 |
+| asia-south1-a             | nvidia-l4       | Yes                      | No                                    | No GPUs available (Stockout) |                       38.49 |
+| europe-central2-b         | nvidia-tesla-t4 | Yes                      | Yes                                   | N/A                          |                       33.23 |
+| southamerica-east1-c      | nvidia-tesla-t4 | Yes                      | No                                    | No GPUs available (Stockout) |                       24.88 |
+| asia-east1-b              | nvidia-l4       | Yes                      | No                                    | No GPUs available (Stockout) |                       25.35 |
+| us-east1-b                | nvidia-l4       | Yes                      | Yes                                   | N/A                          |                       19.07 |
+| asia-northeast1-c         | nvidia-tesla-t4 | Yes                      | No                                    | No GPUs available (Stockout) |                       17.55 |
+| asia-northeast1-c         | nvidia-l4       | Yes                      | No                                    | Quota exceeded               |                       16.26 |
+| me-west1-b                | nvidia-tesla-t4 | Yes                      | Yes                                   | N/A                          |                       33.11 |
+| europe-west6-b            | nvidia-l4       | Yes                      | No                                    | No GPUs available (Stockout) |                       22.21 |
+| asia-northeast3-c         | nvidia-tesla-t4 | Yes                      | No                                    | No GPUs available (Stockout) |                       23.05 |
+| us-west4-b                | nvidia-tesla-t4 | Yes                      | Yes                                   | N/A                          |                       24.81 |
+| asia-east1-c              | nvidia-tesla-t4 | Yes                      | No                                    | Quota exceeded               |                       24.4  |
+| asia-east1-c              | nvidia-l4       | Yes                      | No                                    | No GPUs available (Stockout) |                       25.28 |
+| asia-southeast1-a         | nvidia-tesla-t4 | Yes                      | No                                    | No GPUs available (Stockout) |                       20.97 |
+| asia-southeast1-a         | nvidia-l4       | Yes                      | Yes                                   | N/A                          |                       29.63 |

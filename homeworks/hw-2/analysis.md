@@ -1,0 +1,7 @@
+# Method Analysis
+
+Method 1 minimizes API calls by performing two global queries and doing all filtering in memory. A single `aggregated_list` call enumerates every zone’s advertised accelerator types; one `regions.list` call returns per-region quota usage. Combining those results yields a compact candidate set of `(zone, region, gpu_type, quota_remaining)`, avoiding any per-zone or per-region polling and eliminating obvious allocation targets up front.
+
+Method 2 consumes the least number of high-cost calls possible by acting only on Method 1’s filtered candidates. It attempts at most one real instance insertion per chosen candidate, runs sequentially to prevent artificial `QUOTA_EXCEEDED` artifacts, and immediately deletes non-kept test VMs. In practice, Method 1 is cheap and fast but only indicates theoretical capacity; Method 2 is authoritative and I/O-bound, confirming live zonal stock through actual allocation attempts.
+
+Efficiency could be improved by prioritizing candidates by `quota_remaining` and selecting at most one distinct zone per GPU type. Add a short-lived in-memory cache of recent successful allocations to avoid redundant probing, apply exponential backoff on repeated failures, and integrate GCP reservation APIs (Capacity Reservations or committed capacity) where available to eliminate repeated active checks.
