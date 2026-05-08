@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resnet18-inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resnet18-inference
+  template:
+    metadata:
+      labels:
+        app: resnet18-inference
+    spec:
+      containers:
+        - name: inference
+          image: gcr.io/${PROJECT_ID}/resnet18-inference:latest
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: model-storage
+              mountPath: /mnt/model
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: model-pvc
