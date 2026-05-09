@@ -1,0 +1,46 @@
+=== ROOFLINE METRICS SUMMARY ===
+
+[ResNet-50 (Train)]
+  Total FLOPs:          7,143,333,488 (HMMA: 0)
+  Total DRAM Bytes:     7,373,600,824
+  Total GPU Time:       0.0157 seconds
+  Arithmetic Intensity: 0.9688 FLOPs/Byte
+  Attained Perf:        453.75 GFLOPs/sec
+
+[ResNet-50 (Eval)]
+  Total FLOPs:          4,649,361,752 (HMMA: 0)
+  Total DRAM Bytes:     1,932,147,692
+  Total GPU Time:       0.0048 seconds
+  Arithmetic Intensity: 2.4063 FLOPs/Byte
+  Attained Perf:        975.28 GFLOPs/sec
+
+[VGG-16 (Train)]
+  Total FLOPs:          12,590,962,673 (HMMA: 0)
+  Total DRAM Bytes:     16,984,206,167
+  Total GPU Time:       0.0235 seconds
+  Arithmetic Intensity: 0.7413 FLOPs/Byte
+  Attained Perf:        535.55 GFLOPs/sec
+
+[VGG-16 (Eval)]
+  Total FLOPs:          5,204,104,280 (HMMA: 0)
+  Total DRAM Bytes:     3,675,140,608
+  Total GPU Time:       0.0061 seconds
+  Arithmetic Intensity: 1.4160 FLOPs/Byte
+  Attained Perf:        851.40 GFLOPs/sec
+
+[ViT-B-16 (Train)]
+  Total FLOPs:          831,608,797,704 (HMMA: 0)
+  Total DRAM Bytes:     12,869,438,019
+  Total GPU Time:       0.0775 seconds
+  Arithmetic Intensity: 64.6189 FLOPs/Byte
+  Attained Perf:        10737.10 GFLOPs/sec
+
+[ViT-B-16 (Eval)]
+  Total FLOPs:          280,276,139,514 (HMMA: 0)
+  Total DRAM Bytes:     1,903,887,744
+  Total GPU Time:       0.0246 seconds
+  Arithmetic Intensity: 147.2125 FLOPs/Byte
+  Attained Perf:        11391.88 GFLOPs/sec
+
+Generating Empirical Roofline Plot...
+Roofline plot saved as 'a100_roofline_empirical.png'
