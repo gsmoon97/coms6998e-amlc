@@ -4,7 +4,7 @@ COMS 6998E — Applied Machine Learning in the Cloud
 
 ## Overview
 
-This project trains a ResNet18 image classifier on CIFAR-10 using a Kubernetes Job on GKE, saves the model to a PersistentVolumeClaim, and serves inference via a Flask web server exposed through a Kubernetes LoadBalancer Service.
+This project trains a ResNet18 image classifier on CIFAR-10 on GKE using the **Kubeflow Training Operator** (`PyTorchJob`), saves the model to a PersistentVolumeClaim, and serves inference via a Flask web server exposed through a Kubernetes LoadBalancer Service.
 
 ## Architecture
 
@@ -17,7 +17,8 @@ training/Dockerfile                     inference/Dockerfile
 gcr.io/$PROJECT_ID/resnet18-trainer    gcr.io/$PROJECT_ID/resnet18-inference
     |                                       |
     v                                       v
-k8s/train-job.yaml (Job)           k8s/inference-deployment.yaml (Deployment)
+k8s/train-pytorchjob.yaml          k8s/inference-deployment.yaml (Deployment)
+(Kubeflow PyTorchJob)
     |                                       |
     +-----> k8s/pvc.yaml (PVC) <-----------+
             /mnt/model/resnet18.pth
@@ -39,7 +40,7 @@ hw-3/
 │   └── Dockerfile
 ├── k8s/
 │   ├── pvc.yaml                    # PersistentVolumeClaim for model storage
-│   ├── train-job.yaml              # Kubernetes Job for training
+│   ├── train-pytorchjob.yaml       # Kubeflow PyTorchJob for training
 │   ├── inference-deployment.yaml   # Kubernetes Deployment for inference
 │   └── inference-service.yaml      # Kubernetes LoadBalancer Service
 ├── download_test_images.py         # Downloads CIFAR-10 + OOD test images
@@ -71,9 +72,17 @@ All commands below use `$PROJECT_ID` and `$ZONE`. Set them once before running a
 
 ```bash
 export PROJECT_ID=your-gcp-project-id
-export ZONE=us-central1-a   # change to whichever zone has GPU availability
+export ZONE=us-central1-a
 gcloud config set project $PROJECT_ID
 ```
+
+> **Finding a zone with T4s:** US zones were in T4 stockout at the time of this run.
+> Use [`../hw-2/gpu_provisioner.py`](../hw-2/gpu_provisioner.py) to scan all zones and
+> find one with real (allocation-tested, not just advertised) T4 capacity:
+>
+> ```bash
+> python ../hw-2/gpu_provisioner.py --project $PROJECT_ID --gpu-types nvidia-tesla-t4
+> ```
 
 ### 1. Enable required APIs
 
@@ -134,7 +143,35 @@ gcloud container clusters get-credentials amlc-cluster --zone $ZONE
 kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
 ```
 
-## Build & Push Docker Images (via Cloud Build — no local Docker needed)
+### 6. Install the Kubeflow Training Operator
+
+The Training Operator provides the `PyTorchJob` CRD used for the training step. Install it via the standalone `kustomize` binary (recommended):
+
+```bash
+# One-time prerequisite (macOS)
+brew install kustomize
+
+# Install the operator
+kustomize build "github.com/kubeflow/training-operator/manifests/overlays/standalone?ref=v1.8.1" \
+  | kubectl apply -f -
+```
+
+Wait until the operator pod is Ready:
+
+```bash
+kubectl get pods -n kubeflow
+# NAME                                 READY   STATUS    RESTARTS   AGE
+# training-operator-...                1/1     Running   0          1m
+```
+
+Verify the CRDs are registered:
+
+```bash
+kubectl get crd | grep kubeflow
+# pytorchjobs.kubeflow.org   ...
+```
+
+## Build & Push Docker Images (via Cloud Build)
 
 ### Training image
 
@@ -163,18 +200,24 @@ kubectl apply -f k8s/pvc.yaml
 kubectl get pvc
 ```
 
-### 2. Run the training Job
+### 2. Run the training PyTorchJob
 
 ```bash
-envsubst < k8s/train-job.yaml | kubectl apply -f -
-kubectl get jobs
-kubectl logs -f job/resnet18-training        # stream training logs in real time
+envsubst < k8s/train-pytorchjob.yaml | kubectl apply -f -
+kubectl get pytorchjobs
+kubectl get pods -l training.kubeflow.org/job-name=resnet18-training
 ```
 
-Training takes ~15 minutes on a T4 GPU. To block until the job finishes:
+The Training Operator creates a single Master pod named `resnet18-training-master-0`. Stream logs with:
 
 ```bash
-kubectl wait --for=condition=complete job/resnet18-training --timeout=30m
+kubectl logs -f resnet18-training-master-0
+```
+
+Training takes ~15 minutes on a T4 GPU. To block until the job succeeds:
+
+```bash
+kubectl wait --for=condition=Succeeded pytorchjob/resnet18-training --timeout=30m
 ```
 
 The job completes when the model is saved to `/mnt/model/resnet18.pth` on the PVC.
@@ -231,19 +274,19 @@ deer                                -> deer
 dog                                 -> dog
 frog                                -> frog
 horse                               -> horse
-ship                                -> ship
+ship                                -> automobile
 truck                               -> truck
 
 === Out-of-distribution ===
-flower_1                            -> frog
+flower_1                            -> bird
 flower_2                            -> frog
-flower_3                            -> frog
-digit_zero (MNIST)                  -> frog
-digit_three (MNIST)                 -> horse
-digit_seven (MNIST)                 -> bird
+flower_3                            -> bird
+digit_zero (MNIST)                  -> bird
+digit_three (MNIST)                 -> automobile
+digit_seven (MNIST)                 -> airplane
 ```
 
-The model achieves **100% accuracy on all 10 in-distribution classes**. OOD images (flowers, handwritten digits) are force-mapped to the nearest CIFAR-10 class — mostly animals like frog, horse, and bird, which have similar blob-like shapes. This is expected behavior of a closed-set softmax classifier: it has no "unknown" option and must always pick one of the 10 classes.
+The model classifies **9 of 10 in-distribution classes correctly** (90% on this single-image-per-class smoke test); `ship` is misclassified as `automobile`, consistent with the model's measured validation accuracy of ~91.5% (≈1 expected error per 10 samples) and ResNet18's known intra-vehicle-class confusion at 32×32 native resolution. OOD images (flowers, handwritten digits) are force-mapped to whichever CIFAR-10 class scores highest under the closed-set softmax — there is no "unknown" option, so the prediction is essentially arbitrary among classes whose features happen to fire on the input. See the report (§F) for a full discussion.
 
 ### Manual curl
 
@@ -267,7 +310,13 @@ curl http://<EXTERNAL-IP>/health
 ## Cleanup (to avoid GCP charges)
 
 ```bash
-kubectl delete -f k8s/
+# Delete PyTorchJob + Deployment + Service + PVC
+kubectl delete pytorchjob resnet18-training --ignore-not-found
+kubectl delete -f k8s/inference-service.yaml
+kubectl delete -f k8s/inference-deployment.yaml
+kubectl delete -f k8s/pvc.yaml
+
+# Delete the cluster (also removes the Training Operator)
 gcloud container clusters delete amlc-cluster --zone $ZONE
 ```
 

@@ -1,0 +1,32 @@
+apiVersion: kubeflow.org/v1
+kind: PyTorchJob
+metadata:
+  name: resnet18-training
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: gcr.io/${PROJECT_ID}/resnet18-trainer:latest
+              resources:
+                limits:
+                  nvidia.com/gpu: 1
+              volumeMounts:
+                - name: model-storage
+                  mountPath: /mnt/model
+                - name: dshm
+                  mountPath: /dev/shm
+          volumes:
+            - name: model-storage
+              persistentVolumeClaim:
+                claimName: model-pvc
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 2Gi
+          nodeSelector:
+            cloud.google.com/gke-accelerator: nvidia-tesla-t4
